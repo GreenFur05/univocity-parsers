@@ -567,9 +567,9 @@ public abstract class AbstractWriter<S extends CommonWriterSettings<?>> {
 				if (dummyHeaderRow == null) {
 					dummyHeaderRow = this.headers;
 				}
-				row = writerProcessor.write(record, dummyHeaderRow, indexesToWrite);
+				row = writerProcessor.write(record, dummyHeaderRow, indexesToWrite, columnReorderingEnabled);
 			} else {
-				row = writerProcessor.write(record, getRowProcessorHeaders(), indexesToWrite);
+				row = writerProcessor.write(record, getRowProcessorHeaders(), indexesToWrite, columnReorderingEnabled);
 			}
 		} catch (DataProcessingException e) {
 			e.setErrorContentLength(errorContentLength);
@@ -911,7 +911,7 @@ public abstract class AbstractWriter<S extends CommonWriterSettings<?>> {
 		if (indexesToWrite.length < row.length) {
 			if (columnReorderingEnabled) {
 				for (int i = 0; i < indexesToWrite.length; i++) {
-					outputRow[i] = row[indexesToWrite[i]];
+						outputRow[i] = row[indexesToWrite[i]];
 				}
 			} else {
 				for (int i = 0; i < indexesToWrite.length; i++) {
@@ -921,8 +921,14 @@ public abstract class AbstractWriter<S extends CommonWriterSettings<?>> {
 
 		} else {
 			for (int i = 0; i < row.length && i < indexesToWrite.length; i++) {
-				if (indexesToWrite[i] != -1) {
-					outputRow[indexesToWrite[i]] = row[i];
+				if (columnReorderingEnabled) {
+					if (indexesToWrite[i] != -1) {
+						outputRow[i] = row[i];
+					}
+				} else {
+					if (indexesToWrite[i] != -1) {
+						outputRow[indexesToWrite[i]] = row[i];
+					}
 				}
 			}
 		}

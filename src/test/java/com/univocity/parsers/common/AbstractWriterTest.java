@@ -16,8 +16,11 @@
 package com.univocity.parsers.common;
 
 import com.univocity.parsers.ParserTestCase;
+import com.univocity.parsers.common.processor.BeanWriterProcessor;
 import com.univocity.parsers.csv.CsvWriter;
 import com.univocity.parsers.csv.CsvWriterSettings;
+import com.univocity.parsers.examples.Car;
+import com.univocity.parsers.examples.TestBean;
 import com.univocity.parsers.fixed.*;
 import com.univocity.parsers.fixed.FixedWidthFields;
 import org.testng.annotations.Test;
@@ -27,10 +30,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertEqualsNoOrder;
@@ -158,5 +159,51 @@ public class AbstractWriterTest extends ParserTestCase {
 		writer.close();
 
 		assertEquals(output.toString(), "A,C\nV1,V3\nV1,V3\nV1,V3\n");
+	}
+
+	@Test
+	public void testBeanColumnReorderingEnabled() {
+		StringWriter output = new StringWriter();
+
+		CsvWriterSettings settings = new CsvWriterSettings();
+		settings.setRowWriterProcessor(new BeanWriterProcessor<Car>(Car.class));
+		settings.setHeaderWritingEnabled(true);
+
+		settings.setColumnReorderingEnabled(true);
+		settings.selectFields("model", "year", "price");
+
+		CsvWriter writer = new CsvWriter(output, settings);
+		writer.writeHeaders();
+
+
+		Car car = new Car();
+		Set<String> s = new HashSet<String>();
+		s.add("Test");
+		s.add("Description");
+
+		car.setYear(2001);
+		car.setDescription(s);
+		car.setMake("2001");
+		car.setModel("U");
+		car.setPrice(new BigDecimal("100.00"));
+		writer.processRecord(car);
+
+		car.setYear(2002);
+		car.setDescription(s);
+		car.setMake("2002Make");
+		car.setModel("2002Model");
+		car.setPrice(new BigDecimal("200.00"));
+		writer.processRecord(car);
+
+		car.setYear(2003);
+		car.setDescription(s);
+		car.setMake("2003Make");
+		car.setModel("2003Model");
+		car.setPrice(new BigDecimal("300.00"));
+		writer.processRecord(car);
+
+		writer.close();
+
+		System.out.println(output.toString());
 	}
 }

@@ -454,7 +454,7 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 	void mapValuesToFields(T instance, Object[] row, Context context) {
 		if (row.length > lastFieldIndexMapped) {
 			this.lastFieldIndexMapped = row.length;
-			mapFieldIndexes(context, row, NormalizedString.toIdentifierGroupArray(context.headers()), context.extractedFieldIndexes(), context.columnsReordered());
+			mapFieldIndexes(context, row, NormalizedString.toIdentifierGroupArray(context.headers()));
 		}
 
 		int last = row.length < readOrder.length ? row.length : readOrder.length;
@@ -487,7 +487,6 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 				}
 			}
 		}
-
 	}
 
 	/**
@@ -495,11 +494,8 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 	 *
 	 * @param row              A row with values for the given java bean.
 	 * @param headers          The names of all fields of the record (including any header that is not mapped to the java bean). May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
-	 * @param indexes          The indexes of the headers or row that are actually being used. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
-	 * @param columnsReordered Indicates the indexes provided were reordered and do not match the original sequence of headers.
 	 */
-
-	private void mapFieldIndexes(Context context, Object[] row, NormalizedString[] headers, int[] indexes, boolean columnsReordered) {
+	private void mapFieldIndexes(Context context, Object[] row, NormalizedString[] headers) {
 		if (headers == null) {
 			headers = ArgumentUtils.EMPTY_NORMALIZED_STRING_ARRAY;
 		}
@@ -547,42 +543,8 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 			}
 		}
 
-		if (indexes != null) {
-			// sets fields not read from CSV to null.
-			for (int i = 0; i < fieldOrder.length; i++) {
-				boolean isIndexUsed = false;
-				for (int j = 0; j < indexes.length; j++) {
-					if (indexes[j] == i) {
-						isIndexUsed = true;
-						break;
-					}
-				}
-				if (!isIndexUsed) {
-					fieldOrder[i] = null;
-				}
-			}
-
-			// reorders the fields so they are positioned in the same order as in the incoming row[]
-			if (columnsReordered) {
-				FieldMapping[] newFieldOrder = new FieldMapping[indexes.length];
-
-				for (int i = 0; i < indexes.length; i++) {
-					for (int j = 0; j < fieldOrder.length; j++) {
-						int index = indexes[i];
-						if (index != -1) {
-							FieldMapping field = fieldOrder[index];
-							newFieldOrder[i] = field;
-						}
-					}
-				}
-
-				fieldOrder = newFieldOrder;
-			}
-		}
-
 		readOrder = fieldOrder;
 		initializeValuesForMissing();
-
 	}
 
 	private void initializeValuesForMissing() {
@@ -659,12 +621,10 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 	 * @param instance         the java bean instance to be read
 	 * @param row              object array that will receive the values extracted from java bean
 	 * @param headers          The names of all fields of the record (including any header that is not mapped to the java bean). May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
-	 * @param indexes          The indexes of the headers or row that are actually being used. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
-	 * @param columnsReordered Indicates the indexes provided were reordered and do not match the original sequence of headers.
 	 */
-	private void mapFieldsToValues(T instance, Object[] row, NormalizedString[] headers, int[] indexes, boolean columnsReordered) {
+	private void mapFieldsToValues(T instance, Object[] row, NormalizedString[] headers) {
 		if (row.length > this.lastFieldIndexMapped) {
-			mapFieldIndexes(null, row, headers, indexes, columnsReordered);
+			mapFieldIndexes(null, row, headers);
 		}
 
 		int last = row.length < readOrder.length ? row.length : readOrder.length;
@@ -691,10 +651,10 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 	 * @param bean           an instance of the type defined in this class constructor.
 	 * @param headers        All field names used to produce records in a given destination. May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
 	 * @param indexesToWrite The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
-	 *
+	 * @param columnReorderingEnabled Indicates whether fields selected using the field selection methods (defined by the parent class {@link CommonSettings}) should be reordered (defaults to false)
 	 * @return a row of objects containing the values extracted from the java bean
 	 */
-	public final Object[] reverseConversions(T bean, NormalizedString[] headers, int[] indexesToWrite) {
+	public final Object[] reverseConversions(T bean, NormalizedString[] headers, int[] indexesToWrite, boolean columnReorderingEnabled) {
 		if (!mappingsForWritingValidated) {
 			mappingsForWritingValidated = true;
 			validateMappingsForWriting();
@@ -766,7 +726,7 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 		}
 
 		try {
-			mapFieldsToValues(bean, row, normalizedHeaders, indexesToWrite, false);
+			mapFieldsToValues(bean, row, normalizedHeaders);
 		} catch (Throwable ex) {
 			if (ex instanceof DataProcessingException) {
 				DataProcessingException error = (DataProcessingException) ex;
@@ -781,11 +741,24 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 			return null;
 		}
 
-		if (super.reverseConversions(true, row, normalizedHeaders, indexesToWrite)) {
+		if (super.reverseConversions(true, row, normalizedHeaders, indexesToWrite, columnReorderingEnabled)) {
 			return row;
 		}
 
 		return null;
+	}
+
+	/**
+	 * Converts a java bean instance into a sequence of values for writing.
+	 *
+	 * @param bean           an instance of the type defined in this class constructor.
+	 * @param headers        All field names used to produce records in a given destination. May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
+	 * @param indexesToWrite The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
+	 * @return a row of objects containing the values extracted from the java bean
+	 * @deprecated Use the {@link #reverseConversions(Object, NormalizedString[], int[], boolean)} method as it includes functionality for column reordering (otherwise, this method defaults to false)
+	 */
+	public final Object[] reverseConversions(T bean, NormalizedString[] headers, int[] indexesToWrite) {
+		return reverseConversions(bean, headers, indexesToWrite, false);
 	}
 
 	/**

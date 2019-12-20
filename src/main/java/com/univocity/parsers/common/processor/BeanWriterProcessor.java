@@ -62,11 +62,7 @@ public class BeanWriterProcessor<T> extends BeanConversionProcessor<T> implement
 	 * @return a row of objects containing the values extracted from the java bean
 	 */
 	public Object[] write(T input, String[] headers, int[] indexesToWrite) {
-		if (previousHeaders != headers) {
-			previousHeaders = headers;
-			normalizedHeaders = NormalizedString.toArray(headers);
-		}
-		return write(input, normalizedHeaders, indexesToWrite);
+		return write(input, normalizedHeaders, indexesToWrite, false);
 	}
 
 	/**
@@ -77,12 +73,45 @@ public class BeanWriterProcessor<T> extends BeanConversionProcessor<T> implement
 	 * @param indexesToWrite The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
 	 * @return a row of objects containing the values extracted from the java bean
 	 */
+	public Object[] write(T input, String[] headers, int[] indexesToWrite, boolean columnReorderingEnabled) {
+		if (previousHeaders != headers) {
+			previousHeaders = headers;
+			normalizedHeaders = NormalizedString.toArray(headers);
+		}
+		return write(input, normalizedHeaders, indexesToWrite, columnReorderingEnabled);
+	}
+
+
+	/**
+	 * Converts the java bean instance into a sequence of values for writing.
+	 *
+	 * @param input an instance of the type defined in this class constructor.
+	 * @param headers All field names used to produce records in a given destination. May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
+	 * @param indexesToWrite The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
+	 * @param columnReorderingEnabled Indicates whether fields selected using the field selection methods (defined by the parent class {@link CommonSettings}) should be reordered (defaults to false)
+	 * @return a row of objects containing the values extracted from the java bean
+	 */
 	@Override
-	public Object[] write(T input, NormalizedString[] headers, int[] indexesToWrite) {
+	public Object[] write(T input, NormalizedString[] headers, int[] indexesToWrite, boolean columnReorderingEnabled) {
 		if (!initialized) {
 			super.initialize(headers);
 		}
-		return reverseConversions(input, headers, indexesToWrite);
+		return reverseConversions(input, headers, indexesToWrite, columnReorderingEnabled);
+	}
+
+	/**
+	 * Converts the java bean instance into a sequence of values for writing.
+	 *
+	 * @param input an instance of the type defined in this class constructor.
+	 * @param headers All field names used to produce records in a given destination. May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
+	 * @param indexesToWrite The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
+	 * @return a row of objects containing the values extracted from the java bean
+	 * @deprecated Use the {@link #write(Object, NormalizedString[], int[], boolean)} method as it includes functionality for column reordering (otherwise, this method defaults to false)
+	 */
+	@Deprecated
+	@Override
+	public Object[] write(T input, NormalizedString[] headers, int[] indexesToWrite) {
+		return write(input, headers, indexesToWrite, false);
 	}
 
 	@Override

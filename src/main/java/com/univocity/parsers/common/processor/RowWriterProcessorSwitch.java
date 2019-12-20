@@ -124,16 +124,16 @@ public abstract class RowWriterProcessorSwitch implements RowWriterProcessor<Obj
 		return minimumRowLength;
 	}
 
-	public Object[] write(Object input, String[] headers, int[] indicesToWrite) {
+	public Object[] write(Object input, String[] headers, int[] indicesToWrite, boolean columnReorderingEnabled) {
 		if (previousHeaders != headers) {
 			previousHeaders = headers;
 			normalizedHeaders = NormalizedString.toArray(headers);
 		}
-		return write(input, normalizedHeaders, indicesToWrite);
+		return write(input, normalizedHeaders, indicesToWrite, columnReorderingEnabled);
 	}
 
 	@Override
-	public Object[] write(Object input, NormalizedString[] headers, int[] indicesToWrite) {
+	public Object[] write(Object input, NormalizedString[] headers, int[] indicesToWrite, boolean columnReorderingEnabled) {
 		RowWriterProcessor<?> processor = switchRowProcessor(input);
 		if (processor == null) {
 			DataProcessingException ex = new DataProcessingException("Cannot find switch for input. Headers: {headers}, indices to write: " + Arrays.toString(indicesToWrite) + ". " + describeSwitch());
@@ -152,6 +152,18 @@ public abstract class RowWriterProcessorSwitch implements RowWriterProcessor<Obj
 		headersToUse = headersToUse == null ? headers : headersToUse;
 		indexesToUse = indexesToUse == null ? indicesToWrite : indexesToUse;
 
-		return selectedRowWriterProcessor.write(input, headersToUse, indexesToUse);
+		return selectedRowWriterProcessor.write(input, headersToUse, indexesToUse, columnReorderingEnabled);
 	}
+
+	@Deprecated
+	public Object[] write(Object input, String[] headers, int[] indicesToWrite) {
+		return write(input, headers, indicesToWrite, false);
+	}
+
+	@Override
+	@Deprecated
+	public Object[] write(Object input, NormalizedString[] headers, int[] indicesToWrite) {
+		return selectedRowWriterProcessor.write(input, headers, indicesToWrite, false);
+	}
+
 }

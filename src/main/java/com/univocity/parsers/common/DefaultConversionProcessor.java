@@ -189,10 +189,28 @@ public abstract class DefaultConversionProcessor implements ConversionProcessor 
 	 * @param row                   the row of objects that will be converted
 	 * @param headers               All field names used to produce records in a given destination. May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
 	 * @param indexesToWrite        The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
+	 * @return {@code true} if the the row should be discarded
+	 * @deprecated Use the {@link #reverseConversions(boolean, Object[], NormalizedString[], int[], boolean)} )} method as it includes functionality for column reordering (otherwise, this method defaults to false)
+	 */
+	@Deprecated
+	public final boolean reverseConversions(boolean executeInReverseOrder, Object[] row, NormalizedString[] headers, int[] indexesToWrite) {
+		return reverseConversions(executeInReverseOrder, row, headers, indexesToWrite, false);
+	}
+
+	/**
+	 * Executes the sequences of reverse conversions defined using {@link DefaultConversionProcessor#convertFields(Conversion...)}, {@link DefaultConversionProcessor#convertIndexes(Conversion...)} and {@link DefaultConversionProcessor#convertAll(Conversion...)}, for every field in the given row.
 	 *
+	 * <p>Each field will be transformed using the {@link Conversion#revert(Object)} method.
+	 * <p>In general the conversions will process an Object (such as a Boolean, Date, etc), and convert it to a String representation.
+	 *
+	 * @param executeInReverseOrder flag to indicate whether the conversion sequence should be executed in the reverse order of its declaration.
+	 * @param row                   the row of objects that will be converted
+	 * @param headers               All field names used to produce records in a given destination. May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
+	 * @param indexesToWrite        The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
+	 * @param columnReorderingEnabled Indicates whether fields selected using the field selection methods (defined by the parent class {@link CommonSettings}) should be reordered (defaults to false)
 	 * @return {@code true} if the the row should be discarded
 	 */
-	public final boolean reverseConversions(boolean executeInReverseOrder, Object[] row, NormalizedString[] headers, int[] indexesToWrite) {
+	public final boolean reverseConversions(boolean executeInReverseOrder, Object[] row, NormalizedString[] headers, int[] indexesToWrite, boolean columnReorderingEnabled) {
 		boolean keepRow = true;
 		boolean[] convertedFlags = conversionsByType != null ? new boolean[row.length] : null;
 		if (conversions != null) {
@@ -211,7 +229,7 @@ public abstract class DefaultConversionProcessor implements ConversionProcessor 
 
 			for (int i = 0; i < last; i++) {
 				try {
-					if (fieldIndexes == null || fieldIndexes[i] == -1) {
+					if (fieldIndexes == null || fieldIndexes[i] == -1 || columnReorderingEnabled) {
 						row[i] = conversions.reverseConversions(executeInReverseOrder, i, row[i], convertedFlags);
 					} else {
 						int index = fieldIndexes[i];

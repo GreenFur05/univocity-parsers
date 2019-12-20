@@ -64,9 +64,30 @@ public class ObjectRowWriterProcessor extends DefaultConversionProcessor impleme
 	 * @param indexesToWrite The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
 	 * @return an row of Object instances containing the values obtained after the execution of all conversions.
 	 * <p> Fields that do not have any conversion defined will just be copied to the object array into their original positions.
+	 * @deprecated Use the {@link #write(Object[], NormalizedString[], int[], boolean)} )} method as it includes functionality for column reordering (otherwise, this method defaults to false)
 	 */
 	@Override
+	@Deprecated
 	public Object[] write(Object[] input, NormalizedString[] headers, int[] indexesToWrite) {
+		return write(input, headers, indexesToWrite, false);
+	}
+
+
+	/**
+	 * Executes the sequences of conversions defined using {@link DefaultConversionProcessor#convertFields(Conversion...)}, {@link DefaultConversionProcessor#convertIndexes(Conversion...)} and {@link DefaultConversionProcessor#convertAll(Conversion...)}, for every field in the given row.
+	 *
+	 * <p>Each field will be transformed using the {@link Conversion#execute(Object)} method.
+	 * <p>In general the conversions will process a String and convert it to some object value (such as booleans, dates, etc).
+	 *
+	 * @param input the object array that represents a record with its individual fields.
+	 * @param headers All field names used to produce records in a given destination. May be null if no headers have been defined in {@link CommonSettings#getHeaders()}
+	 * @param indexesToWrite The indexes of the headers that are actually being written. May be null if no fields have been selected using {@link CommonSettings#selectFields(String...)} or {@link CommonSettings#selectIndexes(Integer...)}
+	 * @param columnReorderingEnabled Indicates whether fields selected using the field selection methods (defined by the parent class {@link CommonSettings}) should be reordered (defaults to false)
+	 * @return an row of Object instances containing the values obtained after the execution of all conversions.
+	 * <p> Fields that do not have any conversion defined will just be copied to the object array into their original positions.
+	 */
+	@Override
+	public Object[] write(Object[] input, NormalizedString[] headers, int[] indexesToWrite, boolean columnReorderingEnabled) {
 		if (input == null) {
 			return null;
 		}
@@ -74,7 +95,7 @@ public class ObjectRowWriterProcessor extends DefaultConversionProcessor impleme
 		Object[] output = new Object[input.length];
 		System.arraycopy(input, 0, output, 0, input.length);
 
-		if (reverseConversions(false, output, headers, indexesToWrite)) {
+		if (reverseConversions(false, output, headers, indexesToWrite, columnReorderingEnabled)) {
 			return output;
 		}
 
