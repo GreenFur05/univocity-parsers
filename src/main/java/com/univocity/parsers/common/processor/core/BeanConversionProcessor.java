@@ -543,6 +543,45 @@ public class BeanConversionProcessor<T> extends DefaultConversionProcessor {
 			}
 		}
 
+		// If using a context, and the headers are being reordered, they will not have already been reordered
+		if (context != null) {
+			int[] indices = context.extractedFieldIndexes();
+			boolean columnsReordered = context.columnsReordered();
+
+			if (indices != null) {
+				// sets fields not read from CSV to null.
+				for (int i = 0; i < fieldOrder.length; i++) {
+					boolean isIndexUsed = false;
+					for (int j = 0; j < indices.length; j++) {
+						if (indices[j] == i) {
+							isIndexUsed = true;
+							break;
+						}
+					}
+					if (!isIndexUsed) {
+						fieldOrder[i] = null;
+					}
+				}
+
+				// reorders the fields so they are positioned in the same order as in the incoming row[]
+				if (columnsReordered) {
+					FieldMapping[] newFieldOrder = new FieldMapping[indices.length];
+
+					for (int i = 0; i < indices.length; i++) {
+						for (int j = 0; j < fieldOrder.length; j++) {
+							int index = indices[i];
+							if (index != -1) {
+								FieldMapping field = fieldOrder[index];
+								newFieldOrder[i] = field;
+							}
+						}
+					}
+
+					fieldOrder = newFieldOrder;
+				}
+			}
+		}
+
 		readOrder = fieldOrder;
 		initializeValuesForMissing();
 	}

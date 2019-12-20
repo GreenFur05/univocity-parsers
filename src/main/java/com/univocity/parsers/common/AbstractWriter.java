@@ -908,17 +908,17 @@ public abstract class AbstractWriter<S extends CommonWriterSettings<?>> {
 		if (!columnReorderingEnabled && row.length > outputRow.length) {
 			outputRow = Arrays.copyOf(outputRow, row.length);
 		}
+
 		if (indexesToWrite.length < row.length) {
 			if (columnReorderingEnabled) {
 				for (int i = 0; i < indexesToWrite.length; i++) {
-						outputRow[i] = row[indexesToWrite[i]];
+					outputRow[i] = row[indexesToWrite[i]];
 				}
 			} else {
 				for (int i = 0; i < indexesToWrite.length; i++) {
 					outputRow[indexesToWrite[i]] = row[indexesToWrite[i]];
 				}
 			}
-
 		} else {
 			for (int i = 0; i < row.length && i < indexesToWrite.length; i++) {
 				if (columnReorderingEnabled) {
