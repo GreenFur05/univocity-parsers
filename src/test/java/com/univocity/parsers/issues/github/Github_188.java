@@ -49,10 +49,14 @@ public class Github_188 {
 	@Test
 	public void testRepeatedHeaders() {
 		String input = "" +
-				"id,id,field,field\n" +
-				"1,2,value1,value2";
+				"id,field,field,id,test\n" +
+				"1,value1,value2,2,testValue";
 
 		List<T> ts = new CsvRoutines().parseAll(T.class, new StringReader(input));
+		CsvParserSettings settings = new CsvParserSettings();
+		settings.selectFields("test,id");
+		settings.setColumnReorderingEnabled(true);
+		List<String[]> s = new CsvParser(settings).parseAll(new StringReader(input));
 		T t = ts.get(0);
 		assertEquals(t.values.size(), 2);
 		assertEquals(t.values.get(0), "value1");

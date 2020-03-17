@@ -38,6 +38,8 @@ public class FieldNameSelector extends FieldSet<String> implements FieldSelector
 		return getFieldIndexes(new NormalizedString[]{NormalizedString.valueOf(header)})[0];
 	}
 
+
+
 	@Override
 	public int[] getFieldIndexes(NormalizedString[] headers) {
 		if (headers == null) {

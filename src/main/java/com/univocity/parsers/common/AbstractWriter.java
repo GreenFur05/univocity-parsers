@@ -900,16 +900,64 @@ public abstract class AbstractWriter<S extends CommonWriterSettings<?>> {
 
 	/**
 	 * Used when fields were selected and the input rows have a different order than the output. This method
-	 * fills the internal #outputRow array with the values provided by the user in the correct order.
+	 * fills the internal {@link #outputRow} array with the values provided by the user in the correct order, based on {@link #indexesToWrite}.
+	 * When {@link #columnReorderingEnabled} is false, the output will match the original order of the headers.
+	 * When {@link #columnReorderingEnabled} is false and the selection contains all of the headers, the result of the output row will be synonymous with making no selection at all
 	 *
 	 * @param row user-provided data which has to be rearranged to the expected record sequence before writing to the output.
 	 */
 	private <T> void fillOutputRow(T[] row) {
+		/*
+		 * Test
+		 * AbstractWriterTest.testSelectFields():
+		 * 		Headers
+		 *			indexesToWrite.length=2
+		 *			outputRow.length=2
+		 *			row.length=4
+		 * 			eg. indexesToWrite[0] = 3 indicates that row[3] will go to outputRow[0]
+		 *		Values
+		 * 			indexesToWrite.length=2
+		 * 			outputRow.length=2
+		 * 			row.length=4
+		 * 			eg. indexesToWrite[0] = 3 indicates that row[3] will go to outputRow[0]
+		 *
+		 * Ticket_14.testWritingWithSelection():
+		 * 		Headers
+		 *			indexesToWrite.length=38
+		 *			outputRow.length=22
+		 *			row.length=38
+		 * 			eg. indexesToWrite[3] = 13 indicates that row[3] will go to outputRow[13]
+		 *			Indices indicate the index of where the corresponding value in row will go to in output row (therefore cannot remove -1 values from indexesToWrite)
+		 * 		Values
+		 *
+		 *
+		 * BeanWriterProcessorTest.testBeanColumnReorderingEnabled():
+		 *		Headers
+		 *			indexesToWrite.length=3
+		 *			outputRow.length=3
+		 *			row.length=5
+		 * 			eg. indexesToWrite[2] = 4 indicates row[4] will go to outputRow[2]
+		 * 		Values
+		 * 			indexesToWrite.length=3
+		 * 			outputRow.length=3
+		 * 			row.length=3
+		 * 			eg. indexesToWrite[2] = 4 indicates row[2] will go to outputRow[2]
+		 *
+		 * Another case:
+		 * 		When columReorderingEnabled=false, and all of the headers are selected, although not in the same order,
+		 * 		the headers will display in the order they should, which is good, although the values appear in the order
+		 * 		the selectFields order was defined as
+		 */
+
+		// Not sure what this does
 		if (!columnReorderingEnabled && row.length > outputRow.length) {
 			outputRow = Arrays.copyOf(outputRow, row.length);
 		}
 
-		if (indexesToWrite.length < row.length) {
+		int[] tempIndices = ArgumentUtils.removeAll(indexesToWrite, -1);
+
+		// If columnReorderingEnabled is true and size of selection is the same as the headers, then output row will be same as row
+//		if (indexesToWrite.length < row.length) {
 			if (columnReorderingEnabled) {
 				for (int i = 0; i < indexesToWrite.length; i++) {
 					outputRow[i] = row[indexesToWrite[i]];
@@ -919,19 +967,19 @@ public abstract class AbstractWriter<S extends CommonWriterSettings<?>> {
 					outputRow[indexesToWrite[i]] = row[indexesToWrite[i]];
 				}
 			}
-		} else {
-			for (int i = 0; i < row.length && i < indexesToWrite.length; i++) {
-				if (columnReorderingEnabled) {
-					if (indexesToWrite[i] != -1) {
-						outputRow[i] = row[i];
-					}
-				} else {
-					if (indexesToWrite[i] != -1) {
-						outputRow[indexesToWrite[i]] = row[i];
-					}
-				}
-			}
-		}
+//		} else {
+//			for (int i = 0; i < row.length && i < indexesToWrite.length; i++) {
+////				if (columnReorderingEnabled) {
+////					if (indexesToWrite[i] != -1) {
+////						outputRow[i] = row[i];
+////					}
+////				} else {
+//					if (indexesToWrite[i] != -1) {
+//						outputRow[indexesToWrite[i]] = row[i];
+//					}
+////				}
+//			}
+//		}
 	}
 
 	/**

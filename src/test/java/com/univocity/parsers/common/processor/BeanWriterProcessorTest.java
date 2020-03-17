@@ -19,9 +19,13 @@ import com.univocity.parsers.annotations.*;
 import com.univocity.parsers.common.*;
 import com.univocity.parsers.conversions.*;
 import com.univocity.parsers.csv.*;
+import com.univocity.parsers.examples.Car;
 import org.testng.annotations.*;
 
+import java.io.StringWriter;
 import java.math.*;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.testng.Assert.*;
 
@@ -100,4 +104,51 @@ public class BeanWriterProcessorTest {
 			assertTrue(e.getMessage().startsWith("Duplicate field index '1' found in attribute"));
 		}
 	}
+
+	@Test
+	public void testBeanColumnReorderingEnabled() {
+		StringWriter output = new StringWriter();
+
+		CsvWriterSettings settings = new CsvWriterSettings();
+		settings.setRowWriterProcessor(new BeanWriterProcessor<Car>(Car.class));
+		settings.setHeaderWritingEnabled(true);
+
+		settings.setColumnReorderingEnabled(true);
+		settings.selectFields("model", "year", "price", "model", "year", "year");
+
+		CsvWriter writer = new CsvWriter(output, settings);
+		writer.writeHeaders();
+
+
+		Car car = new Car();
+		Set<String> s = new HashSet<String>();
+		s.add("Test");
+		s.add("Description");
+
+		car.setYear(2001);
+		car.setDescription(s);
+		car.setMake("2001");
+		car.setModel("U");
+		car.setPrice(new BigDecimal("100.00"));
+		writer.processRecord(car);
+
+		car.setYear(2002);
+		car.setDescription(s);
+		car.setMake("2002Make");
+		car.setModel("2002Model");
+		car.setPrice(new BigDecimal("200.00"));
+		writer.processRecord(car);
+
+		car.setYear(2003);
+		car.setDescription(s);
+		car.setMake("2003Make");
+		car.setModel("2003Model");
+		car.setPrice(new BigDecimal("300.00"));
+		writer.processRecord(car);
+
+		writer.close();
+
+		System.out.println(output.toString());
+	}
+
 }
